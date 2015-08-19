@@ -1,0 +1,132 @@
+function track = project_trajectory(frame,tcoords,ptrack,dist,bd_max,sfactor,debug)
+
+%% Summary of function project_trajectory:
+%  Function to determine which particles are a part of the same track as
+%  the given point of interest.  Uses a recursive algorithm to predict the
+%  locations of particles in the track.  When no other candidates are
+%  found, the track that was found with the greatest number of points is
+%  returned.
+
+%% Input and Output specifications:
+% INPUT:
+%
+% - frame:    Image matrix for the current frame.  Included for debugging
+%             purposes.
+%
+% - tcoords:  Coordinates of particle centroids in frame. Contains x
+%             coordinates, y coordinates, brightnesses, square of radius of
+%             gyration, distance from source, and whether or not particle
+%             is active.
+%
+% - ptrack:   Matrix of bubble indices previously found to be a part of the
+%             track.  This will be added to recursively to construct the
+%             entire track.
+%
+% - dist:     Distance between the point of interest and the candidate.
+%
+% - bd_max:   User defined value based on the histogram of radius of
+%             gyration data - determines the size of the search area when
+%             searching for candidates.
+%
+% - sfactor:  User defined search factor.  Multiplied by bd_max to
+%             increase the search area when searching for candidates.
+%
+% - debug:    Flag to indicate whether or not the track finding process
+%             should be shown for debugging or thresholding purposes.  Can 
+%             be 0, 1, or 2. 0 = no display, 1 = initial bubble in track
+%             and final track displayed, 2 = entire search process
+%             displayed.
+%
+% OUTPUT:
+% - track:    Matrix containing the indices of the points in the track.
+
+% Written by Michael Meaden - Elmhurst College BITS Lab, 06/22/2011.
+
+%% Create candidate search area.
+
+% Extract x and y coordinates for last found point in the track.
+poi = ptrack(length(ptrack));
+poix = tcoords(poi,1);
+poiy = tcoords(poi,2);
+
+% Calculate angle between last two points of the track.
+velAngle = calcAngle(tcoords,ptrack(length(ptrack)-1),ptrack(length(ptrack)),0);
+
+% Calculate estimated x and y coordinates of the next bubble.
+xest = poix + dist*cos(velAngle);
+yest = poiy + dist*sin(velAngle);
+
+% Calculate the approximate search area for the next point in the track.
+bxMin = xest - sfactor*bd_max;
+bxMax = xest + sfactor*bd_max;
+byMin = yest - sfactor*bd_max;
+byMax = yest + sfactor*bd_max;
+
+%% Find candidates and project track.
+
+% Find all bubbles in approximate search area.
+candidates = find(bxMin<tcoords(:,1)<bxMax & byMin<tcoords(:,2)<byMax & tcoords(:,6)==1);
+
+% Remove any bubbles that are already in ptrack and being considered
+% candidates.
+for ii = 1:1:size(ptrack,2)
+    candidates = candidates(candidates~=ptrack(ii));
+end
+
+% Debug plot - displays ptrack, search area, and potential candidates
+if debug == 2
+    clear gcf; imshow(frame); hold on;    
+    plot(tcoords(ptrack,1),tcoords(ptrack,2),'or'); pause(0.2);
+    debugAngles = 0:((2*pi)/40):2*pi;
+    DBCirclex = xest + (sfactor*bd_max)*cos(debugAngles);
+    DBCircley = yest + (sfactor*bd_max)*sin(debugAngles);
+    plot(DBCirclex,DBCircley,'-b'); pause(0.2);
+    plot(tcoords(candidates,1),tcoords(candidates,2),'og');    
+end
+
+% Reset found flag to 0.
+found = 0;
+
+% If there are no more bubbles found in the search area, return the
+% previously found track.
+if size(candidates,1) == 0
+    track = ptrack;
+% If potential candidates were found, project 
+else
+    % Loop over candidates.
+    for ii = 1:1:size(candidates,1)
+        % When a potential candidate is found to be within the search
+        % window, set the found flag and continue projection.
+        canx = tcoords(candidates(ii),1);
+        cany = tcoords(candidates(ii),2);
+        canDist = sqrt((xest-canx)^2+(yest-cany)^2);
+        if (found == 0) && (canDist<=(sfactor*bd_max))
+            found = 1;
+            modDist = calcDistance(tcoords,candidates(ii),poi);
+            modPtrack = [ptrack candidates(ii)];
+            track = project_trajectory(frame,tcoords,modPtrack,modDist,bd_max,sfactor,debug);
+        % If multiple tracks are found, pick the one with the most support.
+        elseif (found == 1) && (canDist<=(sfactor*bd_max))
+            modDist = calcDistance(tcoords,candidates(ii),poi);
+            modPtrack = [ptrack candidates(ii)];
+            compTrack = project_trajectory(frame,tcoords,modPtrack,modDist,bd_max,sfactor,debug);
+            if size(track,1) < size(compTrack,1)
+                track = compTrack;
+            end
+        % If no candidates are found within the search area, return ptrack.    
+        elseif (found == 0) && (ii == size(candidates,1))
+            track = ptrack;
+        end
+    end
+end
+
+
+
+
+
+
+
+
+
+
+

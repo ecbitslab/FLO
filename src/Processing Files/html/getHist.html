@@ -1,0 +1,187 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>getHist</title><meta name="generator" content="MATLAB 7.10"><meta name="date" content="2011-07-15"><meta name="m-file" content="getHist"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Summary of function distHist.m:</a></li><li><a href="#4">Input and output specifications:</a></li><li><a href="#5">Main Code Block</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [DH RGH EH] = getHist(s,numFrames,rad)
+</pre><h2>Summary of function distHist.m:<a name="3"></a></h2><p>Returns a matrix containing histogram data for inter-particle distances for a given structure containing centroid coordinate data (coords).  Only particles within a specified search radius will be considered.</p><h2>Input and output specifications:<a name="4"></a></h2><p>INPUT: - s:    Structure containing centroid coordinate data for every frame         in a given video.</p><p>- numFrames:  Number of frames in the video file.</p><p>- rad:  Specified search radius in which to find nearest neighbor         pairs of points.</p><p>Output: - EH:  Matrix containing histogram data for inter-particle distances for        the video.</p><p>Written by Mike Meaden, Elmhurst College BITS Lab - 6/1/2011</p><h2>Main Code Block<a name="5"></a></h2><pre class="codeinput">DH = [];
+RGH = [];
+EH = [];
+
+<span class="comment">% Initialize waitbar.</span>
+h = waitbar(0,<span class="string">'Gathering histogram data...'</span>);
+
+<span class="comment">% Loop over frames.</span>
+<span class="keyword">for</span> ii = 1:1:numFrames
+
+    <span class="comment">% The following section is for a histogram of eccentricity values.%%%%%</span>
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+<span class="comment">%     BWim = im2bw(s(ii).frame,0.3);</span>
+<span class="comment">%     rp  = regionprops(BWim, 'Eccentricity');</span>
+<span class="comment">%</span>
+<span class="comment">%     for jj = 1:1:size(rp,1)</span>
+<span class="comment">%         EH = [EH rp(jj).Eccentricity];</span>
+<span class="comment">%     end</span>
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+    <span class="comment">% Loop over all points - shift point of interest.</span>
+    <span class="keyword">for</span> poi = 1:1:size(s(ii).coords,1)
+        <span class="comment">% Get radius of gyration data</span>
+        radGyr = s(ii).coords(poi,4);
+        RGH = [RGH radGyr];
+
+        <span class="comment">% Get x and y coordinates for point of interest.</span>
+        poix = s(ii).coords(poi,1);
+        poiy = s(ii).coords(poi,2);
+
+        <span class="comment">% Loop over remaining points to calculate inter-particle distances.</span>
+        <span class="keyword">for</span> kk = (poi+1):1:size(s(ii).coords,1)
+            x2 = s(ii).coords(kk,1);
+            y2 = s(ii).coords(kk,2);
+            interDist = sqrt((poix-x2)^2 + (poiy-y2)^2);
+            <span class="keyword">if</span> interDist &lt;= rad
+                DH = [DH interDist];
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+
+    <span class="comment">% Update waitbar.</span>
+    waitbar(ii/numFrames);
+<span class="keyword">end</span>
+
+close(h);
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.10<br></p></div><!--
+##### SOURCE BEGIN #####
+function [DH RGH EH] = getHist(s,numFrames,rad)
+
+%% Summary of function distHist.m:
+% Returns a matrix containing histogram data for inter-particle distances
+% for a given structure containing centroid coordinate data (coords).  Only
+% particles within a specified search radius will be considered.
+
+%% Input and output specifications:
+% INPUT:
+% - s:    Structure containing centroid coordinate data for every frame
+%         in a given video.
+%
+% - numFrames:  Number of frames in the video file.
+%
+% - rad:  Specified search radius in which to find nearest neighbor
+%         pairs of points.
+%
+% Output:
+% - EH:  Matrix containing histogram data for inter-particle distances for
+%        the video.
+%
+% Written by Mike Meaden, Elmhurst College BITS Lab - 6/1/2011
+
+%% Main Code Block
+
+DH = [];
+RGH = [];
+EH = [];
+
+% Initialize waitbar.
+h = waitbar(0,'Gathering histogram data...');
+
+% Loop over frames.
+for ii = 1:1:numFrames
+    
+    % The following section is for a histogram of eccentricity values.%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     BWim = im2bw(s(ii).frame,0.3);
+%     rp  = regionprops(BWim, 'Eccentricity');
+%     
+%     for jj = 1:1:size(rp,1)
+%         EH = [EH rp(jj).Eccentricity];
+%     end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    % Loop over all points - shift point of interest.
+    for poi = 1:1:size(s(ii).coords,1)
+        % Get radius of gyration data
+        radGyr = s(ii).coords(poi,4);
+        RGH = [RGH radGyr];
+        
+        % Get x and y coordinates for point of interest.
+        poix = s(ii).coords(poi,1);
+        poiy = s(ii).coords(poi,2);
+        
+        % Loop over remaining points to calculate inter-particle distances.
+        for kk = (poi+1):1:size(s(ii).coords,1)
+            x2 = s(ii).coords(kk,1);
+            y2 = s(ii).coords(kk,2);
+            interDist = sqrt((poix-x2)^2 + (poiy-y2)^2);
+            if interDist <= rad
+                DH = [DH interDist];
+            end
+        end
+    end
+    
+    % Update waitbar.
+    waitbar(ii/numFrames);
+end
+
+close(h);
+##### SOURCE END #####
+--></body></html>

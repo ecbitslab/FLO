@@ -1,0 +1,106 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>calcDistance</title><meta name="generator" content="MATLAB 7.10"><meta name="date" content="2011-07-15"><meta name="m-file" content="calcDistance"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Summary of function calcDistance:</a></li><li><a href="#4">Input and Output specifications.</a></li><li><a href="#5">Main code body.</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> dist = calcDistance(coords,pt1,pt2)
+</pre><h2>Summary of function calcDistance:<a name="3"></a></h2><pre>Function that calculates the distance between two specified points whose
+coordinates are returned by getCntrdCoords.</pre><h2>Input and Output specifications.<a name="4"></a></h2><p>INPUT:</p><p>- coords: Matrix of centroid coordinates returned by getCntrdCoords. - pt1:    Matrix index of first point. - pt2:    Matrix index of seconds point.</p><p>OUTPUT:</p><p>- dist: Distance between the two specified input points.</p><p>Written by Michael Meaden - Elmhurst College BITS Lab, 01/18/2011.</p><h2>Main code body.<a name="5"></a></h2><pre class="codeinput"><span class="comment">% Create matrix of x coordinates and matrix of y coordinates.</span>
+x_coords = coords(:,1);
+y_coords = coords(:,2);
+
+<span class="comment">% Calculate distance between two specified points using the distance</span>
+<span class="comment">% formula.</span>
+dist = sqrt((x_coords(pt2)-x_coords(pt1))^2+(y_coords(pt2)-y_coords(pt1))^2);
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.10<br></p></div><!--
+##### SOURCE BEGIN #####
+function dist = calcDistance(coords,pt1,pt2)
+
+%% Summary of function calcDistance:
+%  Function that calculates the distance between two specified points whose
+%  coordinates are returned by getCntrdCoords.
+
+%% Input and Output specifications.
+% INPUT:
+%
+% - coords: Matrix of centroid coordinates returned by getCntrdCoords.
+% - pt1:    Matrix index of first point.
+% - pt2:    Matrix index of seconds point.
+%
+% OUTPUT:
+%
+% - dist: Distance between the two specified input points.
+%
+% Written by Michael Meaden - Elmhurst College BITS Lab, 01/18/2011.
+
+%% Main code body.
+
+% Create matrix of x coordinates and matrix of y coordinates.
+x_coords = coords(:,1);
+y_coords = coords(:,2);
+
+% Calculate distance between two specified points using the distance
+% formula.
+dist = sqrt((x_coords(pt2)-x_coords(pt1))^2+(y_coords(pt2)-y_coords(pt1))^2);
+##### SOURCE END #####
+--></body></html>

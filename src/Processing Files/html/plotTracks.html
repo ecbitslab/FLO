@@ -1,0 +1,154 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>plotTracks</title><meta name="generator" content="MATLAB 7.10"><meta name="date" content="2011-07-15"><meta name="m-file" content="plotTracks"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Summary of function plotTracks.m:</a></li><li><a href="#4">Input and output specifications:</a></li><li><a href="#5">Main Code Block:</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> plotTracks(s,frm,ptsFlag)
+</pre><h2>Summary of function plotTracks.m:<a name="3"></a></h2><p>Function to plot all tracks within a specified frame within the struct s. s is returned by running the script BT_Driver.m</p><h2>Input and output specifications:<a name="4"></a></h2><p>INPUT:</p><p>- s:   (Number of frames)x1 Structure with fields frame, coords, and        tracks.  Used to obtain indices of points that are in the same        track (from tracks field).</p><p>- frm: Index of s for which the frame and tracks will be plotted.</p><p>- ptsFlag:  Boolean value to indicate whether the user wants all             centroids to be plotted as well.  1 = Plot red lines through             tracks and green circles on all centroids.  0 = Only plot             red lines through tracks.</p><p>OUTPUT:</p><p>There are no output variables.  The function will display a figure displaying the plot of the specified frame and all tracks in that frame.</p><p>Written by Michael Meaden, Elmhurst College BITS Lab - March 31, 2011. Revised for Ver2 on June 27, 2011.</p><h2>Main Code Block:<a name="5"></a></h2><pre class="codeinput"><span class="comment">% Get the frame of interest that is to be plotted.</span>
+F = s(frm).coords;
+
+<span class="comment">% Initialize figure.</span>
+figure; imshow(s(frm).frame); hold <span class="string">on</span>;
+
+<span class="comment">% Loop over all tracks in the current frame.</span>
+<span class="keyword">for</span> ii = 1:1:size(s(frm).tracks,2)
+
+    track = s(frm).tracks(ii).indices;
+    xcoords = s(frm).coords(track,1);
+    ycoords = s(frm).coords(track,2);
+
+    <span class="comment">% If ptsFlag is set, plot points in tracks as green circles.</span>
+    <span class="keyword">if</span> ptsFlag == 1
+        plot(xcoords,ycoords,<span class="string">'og'</span>);
+    <span class="keyword">end</span>
+
+    <span class="comment">% If the current track is 2 points or longer, plot a best fit</span>
+    <span class="comment">% polynomial curve through the points in the track.</span>
+    <span class="keyword">if</span> (size(track,2) &gt;= 2)
+        <span class="comment">%p = polyfit(xcoords,ycoords,2);</span>
+        <span class="comment">%f = polyval(p,xcoords);</span>
+        <span class="comment">%plot(xcoords,f,'-r');</span>
+        plot(xcoords,ycoords,<span class="string">'-r'</span>);
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.10<br></p></div><!--
+##### SOURCE BEGIN #####
+function plotTracks(s,frm,ptsFlag)
+
+%% Summary of function plotTracks.m:
+% Function to plot all tracks within a specified frame within the struct s.
+% s is returned by running the script BT_Driver.m
+
+%% Input and output specifications:
+% INPUT:
+%
+% - s:   (Number of frames)x1 Structure with fields frame, coords, and
+%        tracks.  Used to obtain indices of points that are in the same
+%        track (from tracks field).
+%
+% - frm: Index of s for which the frame and tracks will be plotted.
+%
+% - ptsFlag:  Boolean value to indicate whether the user wants all
+%             centroids to be plotted as well.  1 = Plot red lines through
+%             tracks and green circles on all centroids.  0 = Only plot
+%             red lines through tracks.
+%
+% OUTPUT:
+%
+% There are no output variables.  The function will display a figure
+% displaying the plot of the specified frame and all tracks in that frame.
+%
+% Written by Michael Meaden, Elmhurst College BITS Lab - March 31, 2011.
+% Revised for Ver2 on June 27, 2011.
+
+%% Main Code Block:
+
+% Get the frame of interest that is to be plotted.
+F = s(frm).coords;
+
+% Initialize figure.
+figure; imshow(s(frm).frame); hold on;
+
+% Loop over all tracks in the current frame.
+for ii = 1:1:size(s(frm).tracks,2) 
+    
+    track = s(frm).tracks(ii).indices;
+    xcoords = s(frm).coords(track,1);
+    ycoords = s(frm).coords(track,2);
+    
+    % If ptsFlag is set, plot points in tracks as green circles.
+    if ptsFlag == 1
+        plot(xcoords,ycoords,'og');
+    end
+    
+    % If the current track is 2 points or longer, plot a best fit
+    % polynomial curve through the points in the track.
+    if (size(track,2) >= 2)
+        %p = polyfit(xcoords,ycoords,2);
+        %f = polyval(p,xcoords);
+        %plot(xcoords,f,'-r');
+        plot(xcoords,ycoords,'-r');
+    end
+end
+##### SOURCE END #####
+--></body></html>

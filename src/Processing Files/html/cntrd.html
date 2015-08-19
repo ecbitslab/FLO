@@ -1,0 +1,357 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>cntrd</title><meta name="generator" content="MATLAB 7.10"><meta name="date" content="2011-07-15"><meta name="m-file" content="cntrd"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">function</span> out=cntrd(im,mx,sz,interactive)
+<span class="comment">% out=cntrd(im,mx,sz,interactive)</span>
+<span class="comment">%</span>
+<span class="comment">% PURPOSE:  calculates the centroid of bright spots to sub-pixel accuracy.</span>
+<span class="comment">%  Inspired by Grier &amp; Crocker's feature for IDL, but greatly simplified and optimized</span>
+<span class="comment">%  for matlab</span>
+<span class="comment">%</span>
+<span class="comment">% INPUT:</span>
+<span class="comment">% im: image to process, particle should be bright spots on dark background with little noise</span>
+<span class="comment">%   ofen an bandpass filtered brightfield image or a nice fluorescent image</span>
+<span class="comment">%</span>
+<span class="comment">% mx: locations of local maxima to pixel-level accuracy from pkfnd.m</span>
+<span class="comment">%</span>
+<span class="comment">% sz: diamter of the window over which to average to calculate the centroid.</span>
+<span class="comment">%     should be big enough</span>
+<span class="comment">%     to capture the whole particle but not so big that it captures others.</span>
+<span class="comment">%     if initial guess of center (from pkfnd) is far from the centroid, the</span>
+<span class="comment">%     window will need to be larger than the particle size.  RECCOMMENDED</span>
+<span class="comment">%     size is the long lengthscale used in bpass plus 2.</span>
+<span class="comment">%</span>
+<span class="comment">%</span>
+<span class="comment">% interactive:  OPTIONAL INPUT set this variable to one and it will show you the image used to calculate</span>
+<span class="comment">%    each centroid, the pixel-level peak and the centroid</span>
+<span class="comment">%</span>
+<span class="comment">% NOTE:</span>
+<span class="comment">%  - if pkfnd, and cntrd return more then one location per particle then</span>
+<span class="comment">%  you should try to filter your input more carefully.  If you still get</span>
+<span class="comment">%  more than one peak for particle, use the optional sz parameter in pkfnd</span>
+<span class="comment">%  - If you want sub-pixel accuracy, you need to have a lot of pixels in your window (sz&gt;&gt;1).</span>
+<span class="comment">%    To check for pixel bias, plot a histogram of the fractional parts of the resulting locations</span>
+<span class="comment">%  - It is HIGHLY recommended to run in interactive mode to adjust the parameters before you</span>
+<span class="comment">%    analyze a bunch of images.</span>
+<span class="comment">%</span>
+<span class="comment">% OUTPUT:  a N x 4 array containing, x, y and brightness for each feature</span>
+<span class="comment">%           out(:,1) is the x-coordinates</span>
+<span class="comment">%           out(:,2) is the y-coordinates</span>
+<span class="comment">%           out(:,3) is the brightnesses</span>
+<span class="comment">%           out(:,4) is the sqare of the radius of gyration</span>
+<span class="comment">%</span>
+<span class="comment">% CREATED: Eric R. Dufresne, Yale University, Feb 4 2005</span>
+<span class="comment">%  5/2005 inputs diamter instead of radius</span>
+<span class="comment">%  Modifications:</span>
+<span class="comment">%  D.B. (6/05) Added code from imdist/dist to make this stand alone.</span>
+<span class="comment">%  ERD (6/05) Increased frame of reject locations around edge to 1.5*sz</span>
+<span class="comment">%  ERD 6/2005  By popular demand, 1. altered input to be formatted in x,y</span>
+<span class="comment">%  space instead of row, column space  2. added forth column of output,</span>
+<span class="comment">%  rg^2</span>
+<span class="comment">%  ERD 8/05  Outputs had been shifted by [0.5,0.5] pixels.  No more!</span>
+<span class="comment">%  ERD 8/24/05  Woops!  That last one was a red herring.  The real problem</span>
+<span class="comment">%  is the "ringing" from the output of bpass.  I fixed bpass (see note),</span>
+<span class="comment">%  and no longer need this kludge.  Also, made it quite nice if mx=[];</span>
+<span class="comment">%  ERD 6/06  Added size and brightness output ot interactive mode.  Also</span>
+<span class="comment">%   fixed bug in calculation of rg^2</span>
+<span class="comment">%  JWM 6/07  Small corrections to documentation</span>
+
+
+<span class="keyword">if</span> nargin==3
+   interactive=0;
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> sz/2 == floor(sz/2)
+warning(<span class="string">'sz must be odd, like bpass'</span>);
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> isempty(mx)
+    warning(<span class="string">'there were no positions inputted into cntrd. check your pkfnd theshold'</span>)
+    out=[];
+    <span class="keyword">return</span>;
+<span class="keyword">end</span>
+
+
+r=(sz+1)/2;
+<span class="comment">%create mask - window around trial location over which to calculate the centroid</span>
+m = 2*r;
+x = 0:(m-1) ;
+cent = (m-1)/2;
+x2 = (x-cent).^2;
+dst=zeros(m,m);
+<span class="keyword">for</span> i=1:m
+    dst(i,:)=sqrt((i-1-cent)^2+x2);
+<span class="keyword">end</span>
+
+
+ind=find(dst &lt; r);
+
+msk=zeros([2*r,2*r]);
+msk(ind)=1.0;
+<span class="comment">%msk=circshift(msk,[-r,-r]);</span>
+
+dst2=msk.*(dst.^2);
+ndst2=sum(sum(dst2));
+
+[nr,nc]=size(im);
+<span class="comment">%remove all potential locations within distance sz from edges of image</span>
+ind=find(mx(:,2) &gt; 1.5*sz &amp; mx(:,2) &lt; nr-1.5*sz);
+mx=mx(ind,:);
+ind=find(mx(:,1) &gt; 1.5*sz &amp; mx(:,1) &lt; nc-1.5*sz);
+mx=mx(ind,:);
+
+[nmx,crap] = size(mx);
+
+<span class="comment">%inside of the window, assign an x and y coordinate for each pixel</span>
+xl=zeros(2*r,2*r);
+<span class="keyword">for</span> i=1:2*r
+    xl(i,:)=(1:2*r);
+<span class="keyword">end</span>
+yl=xl';
+
+pts=[];
+<span class="comment">%loop through all of the candidate positions</span>
+<span class="keyword">for</span> i=1:nmx
+    <span class="comment">%create a small working array around each candidate location, and apply the window function</span>
+    tmp=msk.*im(((mx(i,2)-r+1):(mx(i,2)+r)),((mx(i,1)-r+1):(mx(i,1)+r)));
+    <span class="comment">%calculate the total brightness</span>
+    norm=sum(sum(tmp));
+    <span class="comment">%calculate the weigthed average x location</span>
+    xavg=sum(sum(double(tmp).*xl))./double(norm);
+    <span class="comment">%calculate the weighted average y location</span>
+    yavg=sum(sum(double(tmp).*yl))./double(norm);
+    <span class="comment">%calculate the radius of gyration^2</span>
+    <span class="comment">%rg=(sum(sum(tmp.*dst2))/ndst2);</span>
+    rg=(sum(sum(double(tmp).*dst2))/double(norm));
+
+    <span class="comment">%concatenate it up</span>
+    pts=[pts,[mx(i,1)+xavg-r,mx(i,2)+yavg-r,norm,rg]'];
+
+    <span class="comment">%OPTIONAL plot things up if you're in interactive mode</span>
+    <span class="keyword">if</span> interactive==1
+     imagesc(tmp)
+     axis <span class="string">image</span>
+     hold <span class="string">on</span>;
+     plot(xavg,yavg,<span class="string">'x'</span>)
+     plot(xavg,yavg,<span class="string">'o'</span>)
+     plot(r,r,<span class="string">'.'</span>)
+     hold <span class="string">off</span>
+     title([<span class="string">'brightness '</span>,num2str(norm),<span class="string">' size '</span>,num2str(sqrt(rg))])
+     pause
+    <span class="keyword">end</span>
+
+
+<span class="keyword">end</span>
+out=pts';
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.10<br></p></div><!--
+##### SOURCE BEGIN #####
+function out=cntrd(im,mx,sz,interactive)
+% out=cntrd(im,mx,sz,interactive)
+% 
+% PURPOSE:  calculates the centroid of bright spots to sub-pixel accuracy.
+%  Inspired by Grier & Crocker's feature for IDL, but greatly simplified and optimized
+%  for matlab
+% 
+% INPUT:
+% im: image to process, particle should be bright spots on dark background with little noise
+%   ofen an bandpass filtered brightfield image or a nice fluorescent image
+%
+% mx: locations of local maxima to pixel-level accuracy from pkfnd.m
+%
+% sz: diamter of the window over which to average to calculate the centroid.  
+%     should be big enough
+%     to capture the whole particle but not so big that it captures others.  
+%     if initial guess of center (from pkfnd) is far from the centroid, the
+%     window will need to be larger than the particle size.  RECCOMMENDED
+%     size is the long lengthscale used in bpass plus 2.
+%     
+%
+% interactive:  OPTIONAL INPUT set this variable to one and it will show you the image used to calculate  
+%    each centroid, the pixel-level peak and the centroid
+%
+% NOTE:
+%  - if pkfnd, and cntrd return more then one location per particle then
+%  you should try to filter your input more carefully.  If you still get
+%  more than one peak for particle, use the optional sz parameter in pkfnd
+%  - If you want sub-pixel accuracy, you need to have a lot of pixels in your window (sz>>1). 
+%    To check for pixel bias, plot a histogram of the fractional parts of the resulting locations
+%  - It is HIGHLY recommended to run in interactive mode to adjust the parameters before you
+%    analyze a bunch of images.
+%
+% OUTPUT:  a N x 4 array containing, x, y and brightness for each feature
+%           out(:,1) is the x-coordinates
+%           out(:,2) is the y-coordinates
+%           out(:,3) is the brightnesses
+%           out(:,4) is the sqare of the radius of gyration
+%
+% CREATED: Eric R. Dufresne, Yale University, Feb 4 2005
+%  5/2005 inputs diamter instead of radius
+%  Modifications:
+%  D.B. (6/05) Added code from imdist/dist to make this stand alone.
+%  ERD (6/05) Increased frame of reject locations around edge to 1.5*sz
+%  ERD 6/2005  By popular demand, 1. altered input to be formatted in x,y
+%  space instead of row, column space  2. added forth column of output,
+%  rg^2
+%  ERD 8/05  Outputs had been shifted by [0.5,0.5] pixels.  No more!
+%  ERD 8/24/05  Woops!  That last one was a red herring.  The real problem
+%  is the "ringing" from the output of bpass.  I fixed bpass (see note),
+%  and no longer need this kludge.  Also, made it quite nice if mx=[];
+%  ERD 6/06  Added size and brightness output ot interactive mode.  Also 
+%   fixed bug in calculation of rg^2
+%  JWM 6/07  Small corrections to documentation 
+
+
+if nargin==3
+   interactive=0; 
+end
+
+if sz/2 == floor(sz/2)
+warning('sz must be odd, like bpass');
+end
+
+if isempty(mx)
+    warning('there were no positions inputted into cntrd. check your pkfnd theshold')
+    out=[];
+    return;
+end
+
+
+r=(sz+1)/2;
+%create mask - window around trial location over which to calculate the centroid
+m = 2*r;
+x = 0:(m-1) ;
+cent = (m-1)/2;
+x2 = (x-cent).^2;
+dst=zeros(m,m);
+for i=1:m
+    dst(i,:)=sqrt((i-1-cent)^2+x2);
+end
+
+
+ind=find(dst < r);
+
+msk=zeros([2*r,2*r]);
+msk(ind)=1.0;
+%msk=circshift(msk,[-r,-r]);
+
+dst2=msk.*(dst.^2);
+ndst2=sum(sum(dst2));
+
+[nr,nc]=size(im);
+%remove all potential locations within distance sz from edges of image
+ind=find(mx(:,2) > 1.5*sz & mx(:,2) < nr-1.5*sz);
+mx=mx(ind,:);
+ind=find(mx(:,1) > 1.5*sz & mx(:,1) < nc-1.5*sz);
+mx=mx(ind,:);
+
+[nmx,crap] = size(mx);
+
+%inside of the window, assign an x and y coordinate for each pixel
+xl=zeros(2*r,2*r);
+for i=1:2*r
+    xl(i,:)=(1:2*r);
+end
+yl=xl';
+
+pts=[];
+%loop through all of the candidate positions
+for i=1:nmx
+    %create a small working array around each candidate location, and apply the window function
+    tmp=msk.*im(((mx(i,2)-r+1):(mx(i,2)+r)),((mx(i,1)-r+1):(mx(i,1)+r)));
+    %calculate the total brightness
+    norm=sum(sum(tmp));
+    %calculate the weigthed average x location
+    xavg=sum(sum(double(tmp).*xl))./double(norm);
+    %calculate the weighted average y location
+    yavg=sum(sum(double(tmp).*yl))./double(norm);
+    %calculate the radius of gyration^2
+    %rg=(sum(sum(tmp.*dst2))/ndst2);
+    rg=(sum(sum(double(tmp).*dst2))/double(norm));
+    
+    %concatenate it up
+    pts=[pts,[mx(i,1)+xavg-r,mx(i,2)+yavg-r,norm,rg]'];
+    
+    %OPTIONAL plot things up if you're in interactive mode
+    if interactive==1
+     imagesc(tmp)
+     axis image
+     hold on;
+     plot(xavg,yavg,'x')
+     plot(xavg,yavg,'o')
+     plot(r,r,'.')
+     hold off
+     title(['brightness ',num2str(norm),' size ',num2str(sqrt(rg))])
+     pause
+    end
+
+    
+end
+out=pts';
+
+
+
+
+##### SOURCE END #####
+--></body></html>

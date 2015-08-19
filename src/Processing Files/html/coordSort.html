@@ -1,0 +1,229 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>coordSort</title><meta name="generator" content="MATLAB 7.10"><meta name="date" content="2011-07-15"><meta name="m-file" content="coordSort"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Summary of function calcAngle:</a></li><li><a href="#4">Input and Output specifications:</a></li><li><a href="#5">Determine angle corresponding to the corners of the frame.</a></li><li><a href="#6">Based on angle and quadrant of source, determine source coordinates.</a></li><li><a href="#7">Sort coordinates based on how far they are from the source coordinates.</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> scoords = coordSort(im,coords,srcang)
+</pre><h2>Summary of function calcAngle:<a name="3"></a></h2><pre>Function that sorts the points specified in matrix coords based on how
+close they are to the location on the edge of the frame specified by
+srcang, the angle to the flow source position.  The function
+automatically calculates the coordinates of the source, determines the
+distance between the source and each centroid coordinate, and stores
+this distance in an additional column in the coords matrix.  An ordinary
+MATLAB row sort is then used to reorder the rows of the coords matrix
+placing the centroids closest to the source in the first index
+positions.</pre><h2>Input and Output specifications:<a name="4"></a></h2><p>INPUT:</p><p>- im:       Image for which the centroid coordinates were found.  Needed             to determine appropriate coordinates for the source location.             Assume that the image is not rgb and only has two dimensions.</p><p>- coords:   Matrix of centroid coordinates returned by getCntrdCoords.</p><p>- srcang:   Angle (in radians) from the x axis (which divides the frame             in half horizontally) that indicates the location of the flow             source.  The source is assumed to be on the edge of the frame             when this angle is used to calculate the coordinates.  An             angle of 0 radians corresponds to the source being in the             center of the right side of the frame, pi/2 corresponds to             being in the center of the top of the frame, etc.  The angle             is used rather than a specified coordinate of the source             because this allows more versatility between cameras,             settings, and experimental setups.  It is recommended that             the flow source be placed such that it is located in the             center of one of the four sides of the frame for simplicity.</p><p>OUTPUT:</p><p>- scoords:  Matrix of same coordinate values given in the input matrix             coords, but sorted such that the first point in scoords in             the closest to the source and the last point is farthest from             the source.</p><p>Written by Michael Meaden - Elmhurst College BITS Lab, 01/25/2011.</p><h2>Determine angle corresponding to the corners of the frame.<a name="5"></a></h2><pre class="codeinput"><span class="comment">% Get length and height of the frame in pixels.</span>
+flength = length(im(1,:));
+fheight = length(im(:,1));
+
+<span class="comment">% Specify origin to be at the center of the frame.</span>
+ox = flength/2;
+oy = fheight/2;
+
+<span class="comment">% Calculate angle from x axis to the top right corner of the frame.</span>
+cangle = atan(oy/ox);
+</pre><h2>Based on angle and quadrant of source, determine source coordinates.<a name="6"></a></h2><pre class="codeinput"><span class="comment">% First case: Angle falls on right side of frame.</span>
+<span class="keyword">if</span> (srcang &gt;= (2*pi-cangle)) || (srcang &lt;= cangle)
+    srcx = flength;
+    srcy = fheight-((srcx-ox)*tan(srcang)+oy);
+
+<span class="comment">% Second case: Angle falls on top of frame.</span>
+<span class="keyword">else</span>
+    <span class="keyword">if</span> (srcang &gt; cangle) &amp;&amp; (srcang &lt;= (pi-cangle))
+        srcy = 0;
+        srcx = (srcy-oy)*cot(srcang)+ox;
+
+    <span class="comment">% Third case: Angle falls on left side of frame.</span>
+    <span class="keyword">else</span>
+        <span class="keyword">if</span> (srcang &gt; (pi-cangle)) &amp;&amp; (srcang &lt;= (pi+cangle))
+            srcx = 0;
+            srcy = fheight-((srcx-ox)*tan(srcang)+oy);
+
+        <span class="comment">% Fourth case: Angle falls on the bottom of frame.</span>
+        <span class="keyword">else</span>
+            <span class="keyword">if</span> (srcang &gt; (pi+cangle)) &amp;&amp; (srcang &lt; (2*pi-cangle))
+                srcy = fheight;
+                srcx = (srcy-oy)*cot(srcang)+ox;
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre><h2>Sort coordinates based on how far they are from the source coordinates.<a name="7"></a></h2><pre class="codeinput"><span class="comment">% Initialize scoords matrix.</span>
+scoords = coords;
+zerocol = zeros(length(coords),1);
+scoords = cat(2,scoords,zerocol);
+
+<span class="comment">% Create a fifth column in the scoords matrix to store the distances from</span>
+<span class="comment">% the source.</span>
+<span class="keyword">for</span> ii = 1:1:size(coords,1)
+    scoords(ii,5) = sqrt((scoords(ii,1)-srcx)^2+(scoords(ii,2)-srcy)^2);
+<span class="keyword">end</span>
+
+<span class="comment">% Sort scoords using sortrows function.</span>
+scoords = sortrows(scoords,5);
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.10<br></p></div><!--
+##### SOURCE BEGIN #####
+function scoords = coordSort(im,coords,srcang)
+
+%% Summary of function calcAngle:
+%  Function that sorts the points specified in matrix coords based on how
+%  close they are to the location on the edge of the frame specified by
+%  srcang, the angle to the flow source position.  The function
+%  automatically calculates the coordinates of the source, determines the
+%  distance between the source and each centroid coordinate, and stores
+%  this distance in an additional column in the coords matrix.  An ordinary
+%  MATLAB row sort is then used to reorder the rows of the coords matrix
+%  placing the centroids closest to the source in the first index
+%  positions.
+
+%% Input and Output specifications:
+% INPUT:
+%
+% - im:       Image for which the centroid coordinates were found.  Needed
+%             to determine appropriate coordinates for the source location.
+%             Assume that the image is not rgb and only has two dimensions.
+%
+% - coords:   Matrix of centroid coordinates returned by getCntrdCoords.
+%
+% - srcang:   Angle (in radians) from the x axis (which divides the frame 
+%             in half horizontally) that indicates the location of the flow
+%             source.  The source is assumed to be on the edge of the frame
+%             when this angle is used to calculate the coordinates.  An
+%             angle of 0 radians corresponds to the source being in the
+%             center of the right side of the frame, pi/2 corresponds to
+%             being in the center of the top of the frame, etc.  The angle
+%             is used rather than a specified coordinate of the source
+%             because this allows more versatility between cameras,
+%             settings, and experimental setups.  It is recommended that
+%             the flow source be placed such that it is located in the
+%             center of one of the four sides of the frame for simplicity.
+%
+% OUTPUT:
+%
+% - scoords:  Matrix of same coordinate values given in the input matrix
+%             coords, but sorted such that the first point in scoords in
+%             the closest to the source and the last point is farthest from
+%             the source.
+%
+% Written by Michael Meaden - Elmhurst College BITS Lab, 01/25/2011.
+
+%% Determine angle corresponding to the corners of the frame.
+
+% Get length and height of the frame in pixels.
+flength = length(im(1,:));
+fheight = length(im(:,1));
+
+% Specify origin to be at the center of the frame.
+ox = flength/2;
+oy = fheight/2;
+
+% Calculate angle from x axis to the top right corner of the frame.
+cangle = atan(oy/ox);
+
+%% Based on angle and quadrant of source, determine source coordinates.
+
+% First case: Angle falls on right side of frame.
+if (srcang >= (2*pi-cangle)) || (srcang <= cangle)
+    srcx = flength;
+    srcy = fheight-((srcx-ox)*tan(srcang)+oy);
+    
+% Second case: Angle falls on top of frame.
+else
+    if (srcang > cangle) && (srcang <= (pi-cangle))
+        srcy = 0;
+        srcx = (srcy-oy)*cot(srcang)+ox;
+        
+    % Third case: Angle falls on left side of frame.
+    else
+        if (srcang > (pi-cangle)) && (srcang <= (pi+cangle))
+            srcx = 0;
+            srcy = fheight-((srcx-ox)*tan(srcang)+oy);
+            
+        % Fourth case: Angle falls on the bottom of frame.
+        else
+            if (srcang > (pi+cangle)) && (srcang < (2*pi-cangle))
+                srcy = fheight;
+                srcx = (srcy-oy)*cot(srcang)+ox;
+            end
+        end
+    end
+end
+
+%% Sort coordinates based on how far they are from the source coordinates.
+
+% Initialize scoords matrix.
+scoords = coords;
+zerocol = zeros(length(coords),1);
+scoords = cat(2,scoords,zerocol);
+
+% Create a fifth column in the scoords matrix to store the distances from
+% the source.
+for ii = 1:1:size(coords,1)
+    scoords(ii,5) = sqrt((scoords(ii,1)-srcx)^2+(scoords(ii,2)-srcy)^2);
+end
+
+% Sort scoords using sortrows function.
+scoords = sortrows(scoords,5);
+
+##### SOURCE END #####
+--></body></html>

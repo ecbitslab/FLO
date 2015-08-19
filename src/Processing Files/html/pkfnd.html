@@ -1,0 +1,274 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>pkfnd</title><meta name="generator" content="MATLAB 7.10"><meta name="date" content="2011-07-15"><meta name="m-file" content="pkfnd"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">function</span> out=pkfnd(im,th,sz)
+<span class="comment">% finds local maxima in an image to pixel level accuracy.</span>
+<span class="comment">%  this provides a rough guess of particle</span>
+<span class="comment">%  centers to be used by cntrd.m.  Inspired by the lmx subroutine of Grier</span>
+<span class="comment">%  and Crocker's feature.pro</span>
+<span class="comment">% INPUTS:</span>
+<span class="comment">% im: image to process, particle should be bright spots on dark background with little noise</span>
+<span class="comment">%   ofen an bandpass filtered brightfield image (fbps.m, fflt.m or bpass.m) or a nice</span>
+<span class="comment">%   fluorescent image</span>
+<span class="comment">% th: the minimum brightness of a pixel that might be local maxima.</span>
+<span class="comment">%   (NOTE: Make it big and the code runs faster</span>
+<span class="comment">%   but you might miss some particles.  Make it small and you'll get</span>
+<span class="comment">%   everything and it'll be slow.)</span>
+<span class="comment">% sz:  if your data's noisy, (e.g. a single particle has multiple local</span>
+<span class="comment">% maxima), then set this optional keyword to a value slightly larger than the diameter of your blob.  if</span>
+<span class="comment">% multiple peaks are found withing a radius of sz/2 then the code will keep</span>
+<span class="comment">% only the brightest.  Also gets rid of all peaks within sz of boundary</span>
+<span class="comment">%OUTPUT:  a N x 2 array containing, [row,column] coordinates of local maxima</span>
+<span class="comment">%           out(:,1) are the x-coordinates of the maxima</span>
+<span class="comment">%           out(:,2) are the y-coordinates of the maxima</span>
+<span class="comment">%CREATED: Eric R. Dufresne, Yale University, Feb 4 2005</span>
+<span class="comment">%MODIFIED: ERD, 5/2005, got rid of ind2rc.m to reduce overhead on tip by</span>
+<span class="comment">%  Dan Blair;  added sz keyword</span>
+<span class="comment">% ERD, 6/2005: modified to work with one and zero peaks, removed automatic</span>
+<span class="comment">%  normalization of image</span>
+<span class="comment">% ERD, 6/2005: due to popular demand, altered output to give x and y</span>
+<span class="comment">%  instead of row and column</span>
+<span class="comment">% ERD, 8/24/2005: pkfnd now exits politely if there's nothing above</span>
+<span class="comment">%  threshold instead of crashing rudely</span>
+<span class="comment">% ERD, 6/14/2006: now exits politely if no maxima found</span>
+<span class="comment">% ERD, 10/5/2006:  fixed bug that threw away particles with maxima</span>
+<span class="comment">%  consisting of more than two adjacent points</span>
+
+
+
+<span class="comment">%find all the pixels above threshold</span>
+<span class="comment">%im=im./max(max(im));</span>
+ind=find(im &gt; th);
+[nr,nc]=size(im);
+tst=zeros(nr,nc);
+n=length(ind);
+<span class="keyword">if</span> n==0
+    out=[];
+    display(<span class="string">'nothing above threshold'</span>);
+    <span class="keyword">return</span>;
+<span class="keyword">end</span>
+mx=[];
+<span class="comment">%convert index from find to row and column</span>
+rc=[mod(ind,nr),floor(ind/nr)+1];
+<span class="keyword">for</span> i=1:n
+    r=rc(i,1);c=rc(i,2);
+    <span class="comment">%check each pixel above threshold to see if it's brighter than it's neighbors</span>
+    <span class="comment">%  THERE'S GOT TO BE A FASTER WAY OF DOING THIS.  I'M CHECKING SOME MULTIPLE TIMES,</span>
+    <span class="comment">%  BUT THIS DOESN'T SEEM THAT SLOW COMPARED TO THE OTHER ROUTINES, ANYWAY.</span>
+    <span class="keyword">if</span> r&gt;1 &amp; r&lt;nr &amp; c&gt;1 &amp; c&lt;nc
+        <span class="keyword">if</span> im(r,c)&gt;=im(r-1,c-1) &amp; im(r,c)&gt;=im(r,c-1) &amp; im(r,c)&gt;=im(r+1,c-1) &amp; <span class="keyword">...</span>
+         im(r,c)&gt;=im(r-1,c)  &amp; im(r,c)&gt;=im(r+1,c) &amp;   <span class="keyword">...</span>
+         im(r,c)&gt;=im(r-1,c+1) &amp; im(r,c)&gt;=im(r,c+1) &amp; im(r,c)&gt;=im(r+1,c+1)
+        mx=[mx,[r,c]'];
+        <span class="comment">%tst(ind(i))=im(ind(i));</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+<span class="comment">%out=tst;</span>
+mx=mx';
+
+[npks,crap]=size(mx);
+
+<span class="comment">%if size is specified, then get ride of pks within size of boundary</span>
+<span class="keyword">if</span> nargin==3 &amp; npks&gt;0
+   <span class="comment">%throw out all pks within sz of boundary;</span>
+    ind=find(mx(:,1)&gt;sz &amp; mx(:,1)&lt;(nr-sz) &amp; mx(:,2)&gt;sz &amp; mx(:,2)&lt;(nc-sz));
+    mx=mx(ind,:);
+<span class="keyword">end</span>
+
+<span class="comment">%prevent from finding peaks within size of each other</span>
+[npks,crap]=size(mx);
+<span class="keyword">if</span> npks &gt; 1
+    <span class="comment">%CREATE AN IMAGE WITH ONLY PEAKS</span>
+    nmx=npks;
+    tmp=0.*im;
+    <span class="keyword">for</span> i=1:nmx
+        tmp(mx(i,1),mx(i,2))=im(mx(i,1),mx(i,2));
+    <span class="keyword">end</span>
+    <span class="comment">%LOOK IN NEIGHBORHOOD AROUND EACH PEAK, PICK THE BRIGHTEST</span>
+    <span class="keyword">for</span> i=1:nmx
+        roi=tmp( (mx(i,1)-floor(sz/2)):(mx(i,1)+(floor(sz/2)+1)),(mx(i,2)-floor(sz/2)):(mx(i,2)+(floor(sz/2)+1))) ;
+        [mv,indi]=max(roi);
+        [mv,indj]=max(mv);
+        tmp( (mx(i,1)-floor(sz/2)):(mx(i,1)+(floor(sz/2)+1)),(mx(i,2)-floor(sz/2)):(mx(i,2)+(floor(sz/2)+1)))=0;
+        tmp(mx(i,1)-floor(sz/2)+indi(indj)-1,mx(i,2)-floor(sz/2)+indj-1)=mv;
+    <span class="keyword">end</span>
+    ind=find(tmp&gt;0);
+    mx=[mod(ind,nr),floor(ind/nr)+1];
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> size(mx)==[0,0]
+    out=[];
+<span class="keyword">else</span>
+    out(:,2)=mx(:,1);
+    out(:,1)=mx(:,2);
+<span class="keyword">end</span>
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.10<br></p></div><!--
+##### SOURCE BEGIN #####
+function out=pkfnd(im,th,sz)
+% finds local maxima in an image to pixel level accuracy.   
+%  this provides a rough guess of particle
+%  centers to be used by cntrd.m.  Inspired by the lmx subroutine of Grier
+%  and Crocker's feature.pro
+% INPUTS:
+% im: image to process, particle should be bright spots on dark background with little noise
+%   ofen an bandpass filtered brightfield image (fbps.m, fflt.m or bpass.m) or a nice
+%   fluorescent image
+% th: the minimum brightness of a pixel that might be local maxima. 
+%   (NOTE: Make it big and the code runs faster
+%   but you might miss some particles.  Make it small and you'll get
+%   everything and it'll be slow.)
+% sz:  if your data's noisy, (e.g. a single particle has multiple local
+% maxima), then set this optional keyword to a value slightly larger than the diameter of your blob.  if
+% multiple peaks are found withing a radius of sz/2 then the code will keep
+% only the brightest.  Also gets rid of all peaks within sz of boundary
+%OUTPUT:  a N x 2 array containing, [row,column] coordinates of local maxima
+%           out(:,1) are the x-coordinates of the maxima
+%           out(:,2) are the y-coordinates of the maxima
+%CREATED: Eric R. Dufresne, Yale University, Feb 4 2005
+%MODIFIED: ERD, 5/2005, got rid of ind2rc.m to reduce overhead on tip by
+%  Dan Blair;  added sz keyword 
+% ERD, 6/2005: modified to work with one and zero peaks, removed automatic
+%  normalization of image
+% ERD, 6/2005: due to popular demand, altered output to give x and y
+%  instead of row and column
+% ERD, 8/24/2005: pkfnd now exits politely if there's nothing above
+%  threshold instead of crashing rudely
+% ERD, 6/14/2006: now exits politely if no maxima found
+% ERD, 10/5/2006:  fixed bug that threw away particles with maxima
+%  consisting of more than two adjacent points
+
+
+
+%find all the pixels above threshold
+%im=im./max(max(im)); 
+ind=find(im > th);
+[nr,nc]=size(im);
+tst=zeros(nr,nc);
+n=length(ind);
+if n==0
+    out=[];
+    display('nothing above threshold');
+    return;
+end
+mx=[];
+%convert index from find to row and column
+rc=[mod(ind,nr),floor(ind/nr)+1];
+for i=1:n
+    r=rc(i,1);c=rc(i,2);
+    %check each pixel above threshold to see if it's brighter than it's neighbors
+    %  THERE'S GOT TO BE A FASTER WAY OF DOING THIS.  I'M CHECKING SOME MULTIPLE TIMES,
+    %  BUT THIS DOESN'T SEEM THAT SLOW COMPARED TO THE OTHER ROUTINES, ANYWAY.
+    if r>1 & r<nr & c>1 & c<nc
+        if im(r,c)>=im(r-1,c-1) & im(r,c)>=im(r,c-1) & im(r,c)>=im(r+1,c-1) & ...
+         im(r,c)>=im(r-1,c)  & im(r,c)>=im(r+1,c) &   ...
+         im(r,c)>=im(r-1,c+1) & im(r,c)>=im(r,c+1) & im(r,c)>=im(r+1,c+1)
+        mx=[mx,[r,c]']; 
+        %tst(ind(i))=im(ind(i));
+        end
+    end
+end
+%out=tst;
+mx=mx';
+
+[npks,crap]=size(mx);
+
+%if size is specified, then get ride of pks within size of boundary
+if nargin==3 & npks>0
+   %throw out all pks within sz of boundary;
+    ind=find(mx(:,1)>sz & mx(:,1)<(nr-sz) & mx(:,2)>sz & mx(:,2)<(nc-sz));
+    mx=mx(ind,:); 
+end
+
+%prevent from finding peaks within size of each other
+[npks,crap]=size(mx);
+if npks > 1 
+    %CREATE AN IMAGE WITH ONLY PEAKS
+    nmx=npks;
+    tmp=0.*im;
+    for i=1:nmx
+        tmp(mx(i,1),mx(i,2))=im(mx(i,1),mx(i,2));
+    end
+    %LOOK IN NEIGHBORHOOD AROUND EACH PEAK, PICK THE BRIGHTEST
+    for i=1:nmx
+        roi=tmp( (mx(i,1)-floor(sz/2)):(mx(i,1)+(floor(sz/2)+1)),(mx(i,2)-floor(sz/2)):(mx(i,2)+(floor(sz/2)+1))) ;
+        [mv,indi]=max(roi);
+        [mv,indj]=max(mv);
+        tmp( (mx(i,1)-floor(sz/2)):(mx(i,1)+(floor(sz/2)+1)),(mx(i,2)-floor(sz/2)):(mx(i,2)+(floor(sz/2)+1)))=0;
+        tmp(mx(i,1)-floor(sz/2)+indi(indj)-1,mx(i,2)-floor(sz/2)+indj-1)=mv;
+    end
+    ind=find(tmp>0);
+    mx=[mod(ind,nr),floor(ind/nr)+1];
+end
+
+if size(mx)==[0,0]
+    out=[];
+else
+    out(:,2)=mx(:,1);
+    out(:,1)=mx(:,2);
+end
+
+##### SOURCE END #####
+--></body></html>

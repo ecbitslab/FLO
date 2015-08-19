@@ -1,0 +1,161 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>calcAngle</title><meta name="generator" content="MATLAB 7.10"><meta name="date" content="2011-07-15"><meta name="m-file" content="calcAngle"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Summary of function calcAngle:</a></li><li><a href="#4">Input and Output specifications:</a></li><li><a href="#5">Main code block:</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> angle = calcAngle(coords,pt1,pt2,velAngle)
+</pre><h2>Summary of function calcAngle:<a name="3"></a></h2><pre>Function that calculates the angle between the velocity vector of a
+specified point and the centroid coordinates of a second specified
+point.</pre><h2>Input and Output specifications:<a name="4"></a></h2><p>INPUT:</p><p>- coords:   Matrix of centroid coordinates returned by getCntrdCoords. - pt1:      Matrix index of first point. - pt2:      Matrix index of seconds point. - velAngle: Direction of the velocity vector.</p><p>OUTPUT:</p><p>- angle: Angle between the velocity vector of pt1 and the centroid          coordinates of pt2.</p><p>Written by Michael Meaden - Elmhurst College BITS Lab, 01/20/2011.</p><h2>Main code block:<a name="5"></a></h2><pre class="codeinput"><span class="comment">% Get x and y coordinates of specified points from coords matrix.</span>
+pt1x = coords(pt1,1);
+pt1y = coords(pt1,2);
+pt2x = coords(pt2,1);
+pt2y = coords(pt2,2);
+
+<span class="comment">%Create a unit vector in the direction of velAngle.</span>
+velV = [cos(velAngle) -sin(velAngle) 0];
+
+<span class="comment">%Create a vector that treats the centroid of pt1 as the origin and</span>
+<span class="comment">%points to the centroid of pt2.</span>
+ptV = [(pt2x-pt1x) (pt2y-pt1y) 0];
+
+<span class="comment">%Take the dot product of the two vectors.</span>
+dotProd = dot(velV,ptV);
+
+<span class="comment">%Using the fact that the dot product of two vectors is equal to the product</span>
+<span class="comment">%of the magnitudes of the two vectors times the cosine of the angle between</span>
+<span class="comment">%the two, we can find the angle between the velocity vector of pt1 and the</span>
+<span class="comment">%displacement vector from pt1 to pt2.</span>
+angle = acos((dotProd)/(norm(velV)*norm(ptV)));
+
+<span class="comment">%Add a sign to the angle by considering the cross product of the vectors.</span>
+<span class="comment">%Since the flow is two-dimensional, we know the cross product willl yield a</span>
+<span class="comment">%vector in the z direction.  Using this value, we can determine the sign of</span>
+<span class="comment">%the angle based on the normal counter-clockwise = + sign convention for</span>
+<span class="comment">%angles.</span>
+crossProd = cross(velV,ptV);
+
+<span class="keyword">if</span> crossProd(1,3) &lt; 0
+    angle = -angle;
+<span class="keyword">end</span>
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.10<br></p></div><!--
+##### SOURCE BEGIN #####
+function angle = calcAngle(coords,pt1,pt2,velAngle)
+
+%% Summary of function calcAngle:
+%  Function that calculates the angle between the velocity vector of a
+%  specified point and the centroid coordinates of a second specified
+%  point.
+
+%% Input and Output specifications:
+% INPUT:
+%
+% - coords:   Matrix of centroid coordinates returned by getCntrdCoords.
+% - pt1:      Matrix index of first point.
+% - pt2:      Matrix index of seconds point.
+% - velAngle: Direction of the velocity vector.
+%
+% OUTPUT:
+%
+% - angle: Angle between the velocity vector of pt1 and the centroid
+%          coordinates of pt2.
+%
+% Written by Michael Meaden - Elmhurst College BITS Lab, 01/20/2011.
+
+%% Main code block:
+
+% Get x and y coordinates of specified points from coords matrix.
+pt1x = coords(pt1,1);
+pt1y = coords(pt1,2);
+pt2x = coords(pt2,1);
+pt2y = coords(pt2,2);
+
+%Create a unit vector in the direction of velAngle.
+velV = [cos(velAngle) -sin(velAngle) 0];
+
+%Create a vector that treats the centroid of pt1 as the origin and
+%points to the centroid of pt2.
+ptV = [(pt2x-pt1x) (pt2y-pt1y) 0];
+    
+%Take the dot product of the two vectors.
+dotProd = dot(velV,ptV);
+
+%Using the fact that the dot product of two vectors is equal to the product
+%of the magnitudes of the two vectors times the cosine of the angle between
+%the two, we can find the angle between the velocity vector of pt1 and the
+%displacement vector from pt1 to pt2.
+angle = acos((dotProd)/(norm(velV)*norm(ptV)));
+
+%Add a sign to the angle by considering the cross product of the vectors.
+%Since the flow is two-dimensional, we know the cross product willl yield a
+%vector in the z direction.  Using this value, we can determine the sign of
+%the angle based on the normal counter-clockwise = + sign convention for
+%angles.
+crossProd = cross(velV,ptV);
+
+if crossProd(1,3) < 0
+    angle = -angle;
+end
+
+##### SOURCE END #####
+--></body></html>

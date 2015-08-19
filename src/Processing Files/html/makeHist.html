@@ -1,0 +1,167 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>makeHist</title><meta name="generator" content="MATLAB 7.10"><meta name="date" content="2011-07-15"><meta name="m-file" content="makeHist"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">Define relevant parameters.</a></li><li><a href="#3">Read in video and get frames.</a></li></ul></div><pre class="codeinput"><span class="comment">% Script to create histograms of inter-particle distance, radius of</span>
+<span class="comment">% gyration, and eccentricity (optional).</span>
+
+<span class="comment">% Written by Mike Meaden, Elmhurst College BITS Lab - 6/1/2011</span>
+
+tic;
+</pre><h2>Define relevant parameters.<a name="2"></a></h2><pre class="codeinput"><span class="comment">% Define the threshold pixel intensity and size of particles to be used in</span>
+<span class="comment">% the centroid finder.  These should be selected such that the threshold is</span>
+<span class="comment">% equal to the lowest local maximum and the size is equal to the diameter</span>
+<span class="comment">% of the largest bubble present.</span>
+th = 0.5;
+sz = 8;
+
+<span class="comment">% Specify search radius when searching nearest neighbor pairs.</span>
+rad = 60;
+</pre><h2>Read in video and get frames.<a name="3"></a></h2><pre class="codeinput">video = mmreader(<span class="string">'Run_2.MOV'</span>);
+numFrames = video.NumberOfFrames;
+<span class="comment">%numFrames = 10;</span>
+frames = read(video,[1,numFrames]);
+normFrames = normalizeFrames(frames);  <span class="comment">%frames2 = frames(:,:,1,:);</span>
+
+
+<span class="comment">% Initialize waitbar.</span>
+h = waitbar(0,<span class="string">'Finding centroid coordinates...'</span>);
+
+<span class="keyword">for</span> ii = 1:1:numFrames
+    <span class="comment">% Get next frame from frames matrix.</span>
+    frame = normFrames(:,:,ii);
+
+    <span class="comment">% Call function getCntrdCoords.</span>
+    scoords = getCntrdCoords(frame,th,sz);
+
+    <span class="comment">% Store video frame and coordinate data in structure s.</span>
+    s(ii).frame = frame;
+    s(ii).coords = scoords;
+
+    <span class="comment">% Update waitbar.</span>
+    waitbar(ii/numFrames);
+<span class="keyword">end</span>
+
+close(h);
+
+<span class="comment">% Get histogram data.</span>
+[DH RGH EH] = getHist(s, numFrames, rad);
+
+toc;
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.10<br></p></div><!--
+##### SOURCE BEGIN #####
+% Script to create histograms of inter-particle distance, radius of
+% gyration, and eccentricity (optional).
+
+% Written by Mike Meaden, Elmhurst College BITS Lab - 6/1/2011
+
+tic;
+
+%% Define relevant parameters.
+
+% Define the threshold pixel intensity and size of particles to be used in
+% the centroid finder.  These should be selected such that the threshold is
+% equal to the lowest local maximum and the size is equal to the diameter
+% of the largest bubble present.
+th = 0.5;
+sz = 8;
+
+% Specify search radius when searching nearest neighbor pairs.
+rad = 60;
+
+%% Read in video and get frames.
+video = mmreader('Run_2.MOV');
+numFrames = video.NumberOfFrames;
+%numFrames = 10;
+frames = read(video,[1,numFrames]);
+normFrames = normalizeFrames(frames);  %frames2 = frames(:,:,1,:);
+
+
+% Initialize waitbar.
+h = waitbar(0,'Finding centroid coordinates...');
+
+for ii = 1:1:numFrames
+    % Get next frame from frames matrix.
+    frame = normFrames(:,:,ii);
+    
+    % Call function getCntrdCoords.
+    scoords = getCntrdCoords(frame,th,sz);
+    
+    % Store video frame and coordinate data in structure s.
+    s(ii).frame = frame;
+    s(ii).coords = scoords;
+    
+    % Update waitbar.
+    waitbar(ii/numFrames);
+end
+
+close(h);
+
+% Get histogram data.
+[DH RGH EH] = getHist(s, numFrames, rad);
+
+toc;
+
+##### SOURCE END #####
+--></body></html>

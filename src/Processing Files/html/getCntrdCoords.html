@@ -1,0 +1,124 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>getCntrdCoords</title><meta name="generator" content="MATLAB 7.10"><meta name="date" content="2011-07-15"><meta name="m-file" content="getCntrdCoords"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">Summary of function getCntrdCoords:</a></li><li><a href="#4">Input and output specifications:</a></li><li><a href="#5">Main code block:</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> coords = getCntrdCoords(im,th,sz)
+</pre><h2>Summary of function getCntrdCoords:<a name="3"></a></h2><p>Function to locate all centroids in image im.  Calls functions pkfnd and cntrd, written by Eric R. Dufresne, Yale University.</p><h2>Input and output specifications:<a name="4"></a></h2><p>INPUT:</p><p>- im: Image matrix containing pixel intensity values.</p><p>- th: Threshold value to determine peak intensity values. Should be       approximately the lowest local maximum value.</p><p>- sz: Size of the search diameter when calculating the centroid of the       bubbles.  Should be slightly larger than the largest bubble       diameter and should be an odd number.</p><p>OUTPUT:</p><p>- coords: Nx4 Matrix containing x coordinates, y coordinates,           brightnesses, and radii of gyration for all centroids found in           image im.</p><p>Written by Michael Meaden - Elmhurst College BITS Lab, 01/06/2011</p><h2>Main code block:<a name="5"></a></h2><pre class="codeinput"><span class="comment">% Modify the image matrix to make the red bubbles stand out more. Takes</span>
+<span class="comment">% only the red values of an rgb image. If the image is not an rgb image,</span>
+<span class="comment">% this does not affect the image matrix in any way.</span>
+im2 = im(:,:,1);
+
+<span class="comment">%Find local maximum intensities.</span>
+mx = pkfnd(im2,th,sz);
+
+<span class="comment">%Calculate coordinates of centroids of bubbles based on image, mx, and</span>
+<span class="comment">%search diameter.  Set final parameter to 1 if you want to see the images</span>
+<span class="comment">%used when calculating the centroid for a given bubble. Set it to 0</span>
+<span class="comment">%otherwise.</span>
+coords = cntrd(im2,mx,sz,0);
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.10<br></p></div><!--
+##### SOURCE BEGIN #####
+function coords = getCntrdCoords(im,th,sz)
+
+%% Summary of function getCntrdCoords:
+% Function to locate all centroids in image im.  Calls functions pkfnd and
+% cntrd, written by Eric R. Dufresne, Yale University.
+
+%% Input and output specifications:
+% INPUT:
+%
+% - im: Image matrix containing pixel intensity values.
+%
+% - th: Threshold value to determine peak intensity values. Should be 
+%       approximately the lowest local maximum value.
+%
+% - sz: Size of the search diameter when calculating the centroid of the
+%       bubbles.  Should be slightly larger than the largest bubble
+%       diameter and should be an odd number.
+%
+% OUTPUT:
+%
+% - coords: Nx4 Matrix containing x coordinates, y coordinates,
+%           brightnesses, and radii of gyration for all centroids found in
+%           image im.
+%
+% Written by Michael Meaden - Elmhurst College BITS Lab, 01/06/2011
+%
+%% Main code block:
+
+% Modify the image matrix to make the red bubbles stand out more. Takes
+% only the red values of an rgb image. If the image is not an rgb image,
+% this does not affect the image matrix in any way.
+im2 = im(:,:,1);
+
+%Find local maximum intensities.
+mx = pkfnd(im2,th,sz);
+
+%Calculate coordinates of centroids of bubbles based on image, mx, and
+%search diameter.  Set final parameter to 1 if you want to see the images
+%used when calculating the centroid for a given bubble. Set it to 0
+%otherwise.
+coords = cntrd(im2,mx,sz,0);
+##### SOURCE END #####
+--></body></html>
